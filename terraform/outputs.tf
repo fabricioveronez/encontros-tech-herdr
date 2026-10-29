@@ -1,0 +1,12 @@
+output "alb_dns_name" { value = module.alb.alb_dns_name }
+output "app_url" { value = "http://${module.alb.alb_dns_name}" }
+output "vpc_id" { value = module.network.vpc_id }
+output "public_subnet_ids" { value = module.network.public_subnet_ids }
+output "app_subnet_ids" { value = module.network.app_subnet_ids }
+output "database_subnet_ids" { value = module.network.database_subnet_ids }
+output "ecs_cluster_name" { value = module.ecs.ecs_cluster_name }
+output "ecs_service_name" { value = module.ecs.ecs_service_name }
+output "task_definition_arn" { value = module.ecs.task_definition_arn }
+output "db_endpoint" { value = module.database.db_endpoint }
+output "database_url_secret_arn" { value = module.database.database_url_secret_arn }
+output "cloudwatch_log_group" { value = module.ecs.cloudwatch_log_group }
