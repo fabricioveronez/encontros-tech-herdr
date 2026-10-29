@@ -221,3 +221,12 @@ __marimo__/
 kubeconfig
 
 .claude
+
+# Terraform local state and configuration
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+backend.hcl
+crash.log

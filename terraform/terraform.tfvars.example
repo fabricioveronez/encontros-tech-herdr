@@ -1,0 +1,8 @@
+aws_region      = "us-east-1"
+project_name    = "encontros-tech"
+environment     = "dev"
+container_image = "docker.io/example/encontros-tech:replace-me"
+
+# For production, enable deletion protection and retain a final snapshot.
+# db_deletion_protection = true
+# db_skip_final_snapshot = false

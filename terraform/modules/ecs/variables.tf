@@ -1,0 +1,17 @@
+variable "name" { type = string }
+variable "aws_region" { type = string }
+variable "app_subnet_ids" { type = list(string) }
+variable "app_security_group_id" { type = string }
+variable "target_group_arn" { type = string }
+variable "database_url_secret_arn" { type = string }
+variable "container_image" { type = string }
+variable "container_port" { type = number }
+variable "task_cpu" { type = number }
+variable "task_memory" { type = number }
+variable "cpu_architecture" { type = string }
+variable "desired_count" { type = number }
+variable "web_concurrency" { type = number }
+variable "extra_environment" { type = map(string) }
+variable "log_retention_days" { type = number }
+variable "enable_container_insights" { type = bool }
+variable "health_check_grace_period_seconds" { type = number }
