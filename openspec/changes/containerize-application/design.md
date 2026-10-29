@@ -46,7 +46,7 @@ Criar um usuário e grupo de sistema sem privilégios (por exemplo `app`, UID fi
 
 O `ENV` da imagem define `PORT=8000`, `WEB_CONCURRENCY=2`, `LOG_FORMAT=simple`, `PYTHONUNBUFFERED=1` e `PYTHONDONTWRITEBYTECODE=1`. `EXPOSE 8000` funciona como documentação.
 - *Alternativa:* entrypoint em shell que monta os argumentos. Descartada porque acrescenta um arquivo e um processo intermediário que atrapalharia o repasse do `SIGTERM`.
-- Se a validação da corrida no `create_all` (R2) falhar, o padrão de `WEB_CONCURRENCY` no Compose passa a ser `1`.
+- A validação da corrida no `create_all` (R2) falhou com `2` workers, e o padrão de `WEB_CONCURRENCY` no Compose passou a ser `1`.
 
 ### D5. `.dockerignore` restritivo em `src/`
 O contexto de build é `./src`, então o `.dockerignore` fica em `src/` e exclui: `.env*` (exceto `.env.example`, que é inofensivo), `tests/`, `__pycache__/`, `*.py[cod]`, `.pytest_cache/`, ambientes virtuais, `.git/`, arquivos de IDE e de SO, logs, `Dockerfile` e `.dockerignore`. Isso evita que o `load_dotenv()` encontre um `.env` de desenvolvimento dentro da imagem.
@@ -69,11 +69,13 @@ O aceite é o checklist da seção de validação do `tasks.md`, que cobre build
 
 - **R1. `SECRET_KEY` fixo no `main.py`** → A imagem não consegue sobrescrevê-lo, e todas as instâncias compartilham a mesma chave. Aceito nesta change; a correção exige alterar código e fica para uma change futura.
 - **R2. `create_all` no import do módulo, em cada worker** → Com o banco vazio e vários workers, há uma janela de disputa no `CREATE TABLE` que pode derrubar um worker no boot. Mitigação: o `depends_on: service_healthy` garante que o banco esteja pronto, e a validação repete `down`/`up` 3 vezes. Se houver falha, `WEB_CONCURRENCY` passa a `1` no Compose e isso fica registrado aqui. `--preload` foi descartado porque compartilharia o pool de conexões do SQLAlchemy entre processos forkados.
+  - **Resultado da validação (2026-10-29):** a disputa ocorreu já na primeira subida com `WEB_CONCURRENCY=2`. Os dois workers executaram `CREATE TABLE events` ao mesmo tempo, um falhou com `UniqueViolation` em `pg_class_relname_nsp_index` (`events_id_seq`) e o Gunicorn encerrou com `Worker failed to boot`. O Compose passou a definir `WEB_CONCURRENCY: ${WEB_CONCURRENCY:-1}`. A imagem mantém o padrão `2`, então qualquer orquestrador que suba vários workers com o banco vazio está sujeito à mesma falha até o `create_all` sair do import (exige alteração de código).
 - **R3. Métricas com vários workers** → O `PrometheusMetrics` padrão pode expor só os números do worker que atendeu a requisição. `/metrics` funciona, mas os valores podem ficar parciais. Aceito; a correção (`GunicornPrometheusMetrics` ou equivalente) exige alterar código.
 - **R4. Sem endpoint de health dedicado** → Os orquestradores devem usar `/metrics` como liveness (não acessa o banco) e `GET /api/events/?limit=1` como readiness (acessa o banco). Funciona, mas gera log de negócio a cada probe.
 - **R5. `pytest` no `requirements.txt`** → Vai para a imagem final, que fica um pouco maior. Aceito porque o arquivo não pode ser alterado.
 - **R6. Banco não disponível no boot fora do Compose** → Sem o `depends_on`, o `create_all` falha no import, o worker não sobe e o Gunicorn encerra. Em K8s e ECS, o reinício automático resolve, o que é aceitável.
 - **R7. Rebuild a cada mudança** → Mais lento que hot reload, mas é uma escolha explícita: o Compose roda a mesma imagem que vai para os orquestradores. O cache de camadas (D2) reduz o custo.
+- **R8. Endpoints JSON da API retornam 500** → `src/routers/api_router.py` chama `.model_dump()` sobre os objetos SQLAlchemy devolvidos por `event_service`, e eles não têm esse método. Criar, listar (com eventos) e consultar/atualizar por token respondem 500, embora a gravação no banco aconteça. O bug existe desde o commit inicial e não tem relação com a containerização. Os itens 5.3, 5.4, 5.6 e 5.7 da validação ficaram não testáveis. A 6.2 foi validada pelo registro gravado no banco. A correção fica para uma change de código.
 
 ## Migration Plan
 
@@ -81,4 +83,4 @@ Não há deploy em produção nesta change. Para usar: `docker compose up --buil
 
 ## Open Questions
 
-- A disputa no `create_all` (R2) aparece na prática com `WEB_CONCURRENCY=2`? A validação responde, e o design é atualizado com o resultado.
+- ~~A disputa no `create_all` (R2) aparece na prática com `WEB_CONCURRENCY=2`?~~ Sim. Ver R2.

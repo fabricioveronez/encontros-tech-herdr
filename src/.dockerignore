@@ -1,0 +1,37 @@
+# Variáveis de ambiente (o .env.example é inofensivo)
+.env*
+!.env.example
+
+# Testes
+tests/
+.pytest_cache/
+
+# Caches Python
+__pycache__/
+*.py[cod]
+
+# Ambientes virtuais
+.venv/
+venv/
+env/
+ENV/
+
+# VCS
+.git/
+.gitignore
+
+# IDE e SO
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Arquivos de build da imagem
+Dockerfile
+.dockerignore
